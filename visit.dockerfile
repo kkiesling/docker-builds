@@ -11,7 +11,7 @@ RUN apt-get install -y --force-yes \
     python-matplotlib autoconf libtool python-setuptools cpio \
     libgl1-mesa-glx libgl1-mesa-dev libsm6 libxt6 libglu1-mesa
 
-# build MOAB
+# build MOAB (in order to use DAGMC-viz)
 RUN cd $HOME \
   && mkdir opt \
   && cd opt \
@@ -42,16 +42,19 @@ RUN    echo 'export PATH=/usr/local/visit/bin:$PATH' >> $HOME/.bashrc \
     && echo 'export PATH=$HOME/opt/moab/bin/:$PATH' >> $HOME/.bashrc \
     && echo 'export LD_LIBRARY_PATH=$HOME/opt/moab/lib:$LD_LIBRARY_PATH' >> $HOME/.bashrc
 
+RUN ENV QT_X11_NO_MITSHM 1
 
 ### TO FINISH BUILDING ####
 # 1. build docker image
 # 2. run container interactively
-# 3. build visit in the container:
+# 3. install visit in the container:
 #       bash visit-install2_13_2 2.13.2 linux-x86_64-ubuntu14 /usr/local/visit
 # 4. commit container and exit
-# 5. on local machine, run:
+
+### TO RUN VISIT (for Linux based systems) ###
+# 1. on local machine, run:
 #       xhost +local:root;
-# 6. run container again, passing display information (can also mount directories, name the container, etc)
-#       docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:rw visit
-# 7. visit should be able to be launched from the container
+# 2. run container again, passing display information (can also mount directories, name the container, etc)
+#       docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:rw visit-image-name
+# 3. VisIT GUI should be able to be launched from the container
 # reference: https://github.com/symerio/visit-docker
