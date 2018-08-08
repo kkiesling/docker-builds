@@ -2,7 +2,7 @@ FROM  ubuntu:16.04
 
 ENV HOME /root
 
-RUN apt-get -y --force-yes update
+RUN apt-get -y --force-yes --fix-missing update
 RUN apt-get install -y --force-yes \
     software-properties-common wget \
     build-essential python-numpy git cmake vim emacs nano \
@@ -33,7 +33,9 @@ RUN cd $HOME \
 # get visit files (install manually in container)
 RUN cd $HOME/opt \
     && wget http://portal.nersc.gov/project/visit/releases/2.13.2/visit2_13_2.linux-x86_64-ubuntu14.tar.gz \
-    && wget http://portal.nersc.gov/project/visit/releases/2.13.2/visit-install2_13_2
+    && wget http://portal.nersc.gov/project/visit/releases/2.13.2/visit-install2_13_2 \
+    && echo 1 > input \
+    && bash visit-install2_13_2 2.13.2 linux-x86_64-ubuntu14 /usr/local/visit < input
 
 # Add paths to bashrc
 RUN    echo 'export PATH=/usr/local/visit/bin:$PATH' >> $HOME/.bashrc \
@@ -42,7 +44,7 @@ RUN    echo 'export PATH=/usr/local/visit/bin:$PATH' >> $HOME/.bashrc \
     && echo 'export PATH=$HOME/opt/moab/bin/:$PATH' >> $HOME/.bashrc \
     && echo 'export LD_LIBRARY_PATH=$HOME/opt/moab/lib:$LD_LIBRARY_PATH' >> $HOME/.bashrc
 
-RUN ENV QT_X11_NO_MITSHM 1
+ENV QT_X11_NO_MITSHM 1
 
 ### TO FINISH BUILDING ####
 # 1. build docker image
@@ -55,6 +57,6 @@ RUN ENV QT_X11_NO_MITSHM 1
 # 1. on local machine, run:
 #       xhost +local:root;
 # 2. run container again, passing display information (can also mount directories, name the container, etc)
-#       docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:rw visit-image-name
+#       docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix/:rw -v /home/kkiesling/Pokeball/Documents/CNERG/:/root/CNERG/ --device=/dev/dri:/dev/dri --name=visit-run visit
 # 3. VisIT GUI should be able to be launched from the container
 # reference: https://github.com/symerio/visit-docker
