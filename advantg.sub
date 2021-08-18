@@ -1,0 +1,26 @@
+# submit file for advantg
+
+universe = vanilla
++SingularityImage="/software/kkiesling/advantg.sing"
+requirements = HasSingularity && HasCHTCSoftware && (TARGET.HasChtcStaging == true) 
+log = job_finemesh_$(Cluster).log
+error = job_finemesh_$(Cluster)_$(Process).err
+output = job_finemesh_$(Cluster)_$(Process).out
+
+environment = "DATAPATH=/staging/kkiesling/MCNP_DATA"
+
+executable = /home/cnerg/advantg-exe/bin/advantg
+arguments = cadis.inp
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_input_files = /home/kkiesling/advantg/cadis-finemesh/cadis.inp,/home/kkiesling/advantg/cadis-finemesh/analog.inp
+transfer_executable = False
+transfer_output_files = adj_solution/,model/,output/
+preserve_relative_paths = True
+
+request_cpus = 20
+request_memory = 100GB
+request_disk = 50GB
+
+queue 1
