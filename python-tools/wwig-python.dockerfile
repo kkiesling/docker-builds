@@ -1,7 +1,8 @@
-FROM  ubuntu:18.04
+
+FROM  ubuntu:20.04
 
 # set timezone
-
+ENV HOME /root
 ENV TZ=America/Chicago
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -12,28 +13,33 @@ RUN groupadd -r cnerg &&\
 ENV HOME /home/cnerg
 
 RUN apt-get -y --force-yes update \
-    && apt-get install -y --force-yes \
-        software-properties-common \
-        build-essential \
-        git \
-        cmake \
-        gfortran \
-        libblas-dev \
-        python-pip \
-        liblapack-dev \
-        libhdf5-dev \
-        autoconf \
-        libtool \
-        wget \
-        cpio \
-        libpcre3-dev \
-        libgl1-mesa-glx \
-        libgl1-mesa-dev \
-        libsm6 \
-        libxt6 \
-        libglu1-mesa \
-        libharfbuzz-dev
+    && apt-get install -y --force-yes --fix-missing \
+    software-properties-common \
+    build-essential \
+    git \
+    cmake \
+    gfortran \
+    libblas-dev \
+    python3-pip \
+    liblapack-dev \
+    libhdf5-dev \
+    autoconf \
+    libtool \
+    wget \
+    cpio \
+    libpcre3-dev \
+    libgl1-mesa-glx \
+    libgl1-mesa-dev \
+    libsm-dev \
+    libxt6 \
+    libglu1-mesa \
+    libharfbuzz-dev \
+    libice-dev \
+    libxext-dev
 
+# switch to python 3
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10; \
+    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10;
 ENV PATH $HOME/.local/bin:$PATH
 
 # upgrade pip and install python dependencies
@@ -49,10 +55,14 @@ RUN python -m pip install --upgrade pip \
     future \
     pytest \
     pandas  \
+    nose \
+    jinja2 \
+    progress \
     meshio
 
 # need to put libhdf5.so on LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH /usr/lib/x86_64-linux-gnu
+ENV PATH $HOME/.local/bin:$PATH
 RUN echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc \
     && echo "export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu" >> ~/.bashrc
 
@@ -79,39 +89,63 @@ RUN cd $HOME/opt \
 
 ENV PATH $HOME/opt/moab/bin/:$PATH
 ENV LD_LIBRARY_PATH $HOME/opt/moab/lib:$LD_LIBRARY_PATH
-ENV PYTHONPATH $HOME/opt/moab/lib/python2.7/site-packages/:$PYTHONPATH
+ENV PYTHONPATH $HOME/opt/moab/lib/python3.8/site-packages/:$PYTHONPATH
 
 RUN echo "export PATH=$HOME/opt/moab/bin/:$PATH" >> ~/.bashrc \
     && echo "export LD_LIBRARY_PATH=$HOME/opt/moab/lib:$LD_LIBRARY_PATH" >> ~/.bashrc \
-    && echo "export PYTHONPATH=$HOME/opt/moab/lib/python2.7/site-packages/:$PYTHONPATH" >> ~/.bashrc
+    && echo "export PYTHONPATH=$HOME/opt/moab/lib/python3.8/site-packages/:$PYTHONPATH" >> ~/.bashrc
 
 # install Visit
 RUN cd $HOME/opt \
-    && wget https://github.com/visit-dav/visit/releases/download/v3.1.1/visit3_1_1.linux-x86_64-ubuntu18.tar.gz \
-    && wget https://github.com/visit-dav/visit/releases/download/v3.1.1/visit-install3_1_1 \
+    && wget https://github.com/visit-dav/visit/releases/download/v3.2.1/visit3_2_1.linux-x86_64-ubuntu20.tar.gz \
+    && wget https://github.com/visit-dav/visit/releases/download/v3.2.1/visit-install3_2_1 \
     && echo 1 > input \
-    && bash visit-install3_1_1 3.1.1 linux-x86_64-ubuntu18 /usr/local/visit < input \
-    && rm -rf visit3_1_1.linux-x86_64-ubuntu18.tar.gz visit-install3_1_1 input
+    && bash visit-install3_2_1 3.2.1 linux-x86_64-ubuntu20 /usr/local/visit < input \
+    && rm -rf visit3_2_1.linux-x86_64-ubuntu20.tar.gz visit-install3_2_1
 
 ENV PATH /usr/local/visit/bin:$PATH
-ENV LD_LIBRARY_PATH /usr/local/visit/3.1.1/linux-x86_64/lib/:$LD_LIBRARY_PATH
-ENV PYTHONPATH /usr/local/visit/3.1.1/linux-x86_64/lib/site-packages:$PYTHONPATH
+ENV LD_LIBRARY_PATH /usr/local/visit/3.2.1/linux-x86_64/lib/:$LD_LIBRARY_PATH
+ENV PYTHONPATH /usr/local/visit/3.2.1/linux-x86_64/lib/site-packages:$PYTHONPATH
 
 RUN echo "export PATH=/usr/local/visit/bin:$PATH" >> ~/.bashrc \
-    && echo "export LD_LIBRARY_PATH=/usr/local/visit/3.1.1/linux-x86_64/lib/:$LD_LIBRARY_PATH" >> ~/.bashrc \
-    && echo "export PYTHONPATH=/usr/local/visit/3.1.1/linux-x86_64/lib/site-packages:$PYTHONPATH" >> ~/.bashrc
+    && echo "export LD_LIBRARY_PATH=/usr/local/visit/3.2.1/linux-x86_64/lib/:$LD_LIBRARY_PATH" >> ~/.bashrc \
+    && echo "export PYTHONPATH=/usr/local/visit/3.2.1/linux-x86_64/lib/site-packages:$PYTHONPATH" >> ~/.bashrc
+
+# Install PyNE
+RUN cd $HOME/opt \
+    && git clone --depth 1 --branch develop --single-branch https://github.com/pyne/pyne.git \
+    && cd pyne \
+    && python setup.py install --user \
+    --moab $HOME/opt/moab \
+    --clean
 
 ENV LD_LIBRARY_PATH $HOME/.local/lib:$LD_LIBRARY_PATH
 RUN echo "export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
 
+RUN cd $HOME && nuc_data_make
+
+# download wwinp expand tool
+RUN cd $HOME/opt \
+    && git clone https://gist.github.com/a7ddb48f80fbd39449211776f51c7722.git expand_wwinp
+ENV PATH $HOME/opt/expand_wwinp/:$PATH
+RUN echo "export PATH=$HOME/opt/expand_wwinp/:$PATH" >> ~/.bashrc
+
 # install isogeom
 RUN cd $HOME/opt \
-    && git clone --depth 1 -b main --single-branch https://github.com/CNERG/IsogeomGenerator.git \
+    && git clone --depth 1 -b mesh-refine --single-branch https://github.com/kkiesling/IsogeomGenerator.git \
     && cd IsogeomGenerator \
     && pip install . --user
 
-ENV PYTHONPATH $HOME/.local/lib/python2.7/site-packages/IsogeomGenerator:$PYTHONPATH
-RUN echo "export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages/IsogeomGenerator:$PYTHONPATH" >> ~/.bashrc
+ENV PYTHONPATH $HOME/.local/lib/python3.8/site-packages/IsogeomGenerator:$PYTHONPATH
+RUN echo "export PYTHONPATH=$HOME/.local/lib/python3.8/site-packages/IsogeomGenerator:$PYTHONPATH" >> ~/.bashrc
+
+RUN pip install ipython PySide2
+
+ENV PYTHONPATH $HOME/.local/lib/python3.8/site-packages/:$PYTHONPATH
+RUN echo "export PYTHONPATH=$HOME/.local/lib/python3.8/site-packages/:$PYTHONPATH" >> ~/.bashrc
+
+ENV PYTHONPATH $HOME/.local/lib/python3.8/dist-packages/:$PYTHONPATH
+RUN echo "export PYTHONPATH=$HOME/.local/lib/python3.8/dist-packages/:$PYTHONPATH" >> ~/.bashrc
 
 # change ownership of home
 RUN chmod -R a+rwX  $HOME
