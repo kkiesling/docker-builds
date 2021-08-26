@@ -110,16 +110,14 @@ RUN cd $HOME/opt \
     && bash visit-install3_1_2 3.1.2 linux-x86_64-ubuntu20 /usr/local/visit < input \
     && rm -rf visit3_1_2.linux-x86_64-ubuntu20.tar.gz visit-install3_1_2 input
 
-ENV PATH /usr/local/visit/bin:$PATH
-ENV LD_LIBRARY_PATH /usr/local/visit/3.1.2/linux-x86_64/lib/:$LD_LIBRARY_PATH
-ENV PYTHONPATH /usr/local/visit/3.1.2/linux-x86_64/lib/site-packages:$PYTHONPATH
+# add visit to end of paths
+ENV PATH $PATH:/usr/local/visit/bin
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/visit/3.1.2/linux-x86_64/lib/
+ENV PYTHONPATH $PYTHONPATH:/usr/local/visit/3.1.2/linux-x86_64/lib/site-packages
 
-RUN echo "export PATH=/usr/local/visit/bin:$PATH" >> ~/.bashrc \
-    && echo "export LD_LIBRARY_PATH=/usr/local/visit/3.1.2/linux-x86_64/lib/:$LD_LIBRARY_PATH" >> ~/.bashrc \
-    && echo "export PYTHONPATH=/usr/local/visit/3.1.2/linux-x86_64/lib/site-packages:$PYTHONPATH" >> ~/.bashrc
-
-ENV LD_LIBRARY_PATH $HOME/.local/lib:$LD_LIBRARY_PATH
-RUN echo "export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+RUN echo "export PATH=$PATH:/usr/local/visit/bin" >> ~/.bashrc \
+    && echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/visit/3.1.2/linux-x86_64/lib/" >> ~/.bashrc \
+    && echo "export PYTHONPATH=$PYTHONPATH:/usr/local/visit/3.1.2/linux-x86_64/lib/site-packages" >> ~/.bashrc
 
 # install isogeom
 RUN cd $HOME/opt \
@@ -127,8 +125,16 @@ RUN cd $HOME/opt \
     && cd IsogeomGenerator \
     && pip install . --user
 
+ENV LD_LIBRARY_PATH $HOME/.local/lib:$LD_LIBRARY_PATH
+RUN echo "export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+
 ENV PYTHONPATH $HOME/.local/lib/python2.7/site-packages/IsogeomGenerator:$PYTHONPATH
 RUN echo "export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages/IsogeomGenerator:$PYTHONPATH" >> ~/.bashrc
+
+ENV PYTHONPATH /usr/local/lib/python2.7/dist-packages/:$PYTHONPATH
+RUN echo "export PYTHONPATH=/usr/local/lib/python2.7/dist-packages/:$PYTHONPATH" >> ~/.bashrc
+
+RUN pip install vtk ipython
 
 # change ownership of home
 RUN chmod -R a+rwX  $HOME
